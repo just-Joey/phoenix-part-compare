@@ -93,42 +93,6 @@ boundary is the backend's `ALLOWED_USER_EMAILS` (comma-separated), checked
 against the `email` claim on every request in `src/middleware/auth.ts`.
 Anyone signed in but not on that list gets a 403.
 
-## Deploying to Vercel
-
-Frontend and backend deploy together as one Vercel project — the Express
-app is exported as a single serverless function (`api/index.ts` re-exports
-the app built in `src/app.ts`; `src/server.ts` with its `.listen()` call is
-local-dev-only and isn't used in production). `vercel.json` rewrites both
-`/health` and everything under `/api/*` to that function and points the
-static build at `client/dist`.
-
-1. **Push this repo somewhere Vercel can import from** (GitHub/GitLab/etc.),
-   then create the project in the Vercel dashboard, or run `vercel` from the
-   repo root and follow the prompts (`vercel link` if the project already
-   exists).
-2. **Set environment variables** in Vercel's dashboard (Project > Settings >
-   Environment Variables) — everything from `.env.example` (`ANTHROPIC_API_KEY`,
-   `DATABASE_URL`, `NEON_AUTH_URL`, `ALLOWED_USER_EMAILS`, and the cache-tuning
-   vars), **plus** `VITE_NEON_AUTH_URL` from `client/.env.example` — Vite bakes
-   that one into the static build, so it has to be set before the build runs,
-   not just at runtime.
-3. **Add the deployed domain to Neon Auth's allowed origins** — Neon console
-   > your project > Auth > Domains. Skip this and sign-in will fail in
-   production with the same `INVALID_ORIGIN` error you'd get calling a
-   Neon Auth endpoint from a browser origin it doesn't recognize — Better
-   Auth checks the request's `Origin` header against this list on every
-   call, not just admin ones. Add both your `*.vercel.app` preview domain
-   and any custom domain you attach.
-4. **Deploy**: `vercel --prod` (or push to the branch Vercel's watching).
-   The `postinstall` script runs `prisma generate` automatically as part of
-   `npm install`, so the generated client matches Vercel's build
-   environment — no manual step needed there.
-
-If the build fails with `prisma: command not found`, move `prisma` from
-`devDependencies` to `dependencies` in `package.json` — Vercel installs
-devDependencies during build, but some project configs skip that step, and
-`postinstall` needs the CLI available either way.
-
 ## What to harden before relying on this daily
 
 1. **Verify the Thorp Controls and Crum Electric search URLs and selectors.**
@@ -160,10 +124,7 @@ src/
   services/comparisonEngine.ts  — Claude + web search → structured comparison
   services/distributors/         — one file per distributor, shared interface
   routes/compare.ts           — ties it all together
-  app.ts                      — builds the Express app (shared by server.ts and api/index.ts)
-  server.ts                   — local-dev entry point (calls app.listen())
-api/index.ts                  — Vercel serverless entry point (re-exports the Express app)
-vercel.json                    — build/routing config for the Vercel deploy
+  server.ts                   — Express entry point
 client/                        — Vite + React frontend (search box, results, availability grid)
   src/auth.ts                   — Neon Auth client (@neondatabase/neon-js)
   src/components/AuthGate.tsx    — sign-in/sign-up gate wrapping the app
