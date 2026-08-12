@@ -1,0 +1,76 @@
+// Why this shape: the expensive, slow-changing part (spec research + comparison
+// synthesis) is cached separately from the cheap-but-fast-changing part
+// (distributor stock/price). That way a repeat lookup on the same part pair
+// skips the Claude + web search round trip entirely, and only re-checks
+// distributor availability if it's gone stale.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Comparison {
+  id                String   @id @default(cuid())
+  // Nullable: a reverse search (competitor part in, Phoenix part out) can
+  // resolve with no Phoenix equivalent found, same as competitorPartNumber
+  // already could the other direction.
+  phoenixPartNumber String?
+  competitorPartNumber String?
+  competitorManufacturer String? // set on reverse searches — needed to disambiguate the competitor part
+  // Normalized key used for cache lookups, e.g. "2903308|2576130000|"
+  cacheKey          String   @unique
+
+  // Full structured result from the comparison engine, stored as JSON
+  // so the schema can evolve without a migration every time we add a field.
+  result            Json
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  availability      DistributorCheck[]
+
+  @@index([phoenixPartNumber])
+}
+
+model DistributorCheck {
+  id             String     @id @default(cuid())
+  comparisonId   String
+  comparison     Comparison @relation(fields: [comparisonId], references: [id])
+
+  distributor    String     // "graybar_denver" | "thorp_controls" | "crum_electric" | "rs_americas"
+  partNumber     String     // whichever part number was checked (Phoenix or competitor)
+
+  status         String     // "in_stock" | "out_of_stock" | "unknown" | "link_only" | "error"
+  quantity       Int?
+  unitPrice      Float?
+  leadTime       String?
+  sourceUrl       String?
+  method         String     // "scrape" | "manual_link" | "api"
+
+  checkedAt      DateTime   @default(now())
+
+  @@index([comparisonId])
+  @@index([distributor, partNumber])
+}
+
+// Spec-based search has no anchor part number, so it can't share Comparison's
+// cache key shape. Cached separately, and expect a much lower hit rate than
+// part-number lookups — free-text descriptions vary too much to normalize
+// well. Still worth caching for the literal repeat case (same rep re-running
+// the same search a day later).
+model SpecSearch {
+  id          String   @id @default(cuid())
+  description String
+  filters     Json?
+  // Normalized hash of description + filters, used as the cache key.
+  cacheKey    String   @unique
+
+  result      Json
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
