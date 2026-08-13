@@ -1,6 +1,11 @@
-import { claude, CLAUDE_MODEL } from "../lib/claude";
+import { claude } from "../lib/claude";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { ComparisonResult } from "../types/comparison";
+
+// Sonnet, not Haiku: this flow makes judgment calls (is this actually a
+// close match, how significant is this spec difference) that the cheaper
+// model handles less reliably. See specSearchEngine.ts for the split.
+const CLAUDE_MODEL = "claude-sonnet-5";
 
 // This tool definition is the whole trick: instead of asking Claude for prose
 // and regex-parsing it, we give it a "submit_comparison" tool whose input

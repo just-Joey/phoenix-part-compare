@@ -1,6 +1,11 @@
-import { claude, CLAUDE_MODEL } from "../lib/claude";
+import { claude } from "../lib/claude";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SpecSearchFilters, SpecSearchResult } from "../types/comparison";
+
+// Haiku, not Sonnet: this flow is mostly ranking/matching against filters,
+// not the sharper judgment calls comparisonEngine.ts needs. Bump this back
+// to Sonnet if match quality turns out to need it.
+const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
 const SUBMIT_SPEC_SEARCH_TOOL = {
   name: "submit_spec_search",

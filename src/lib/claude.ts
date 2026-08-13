@@ -10,7 +10,3 @@ if (!process.env.ANTHROPIC_API_KEY) {
 export const claude = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
-
-// Centralizing the model name here means upgrading later is a one-line change,
-// not a grep-and-replace across the codebase.
-export const CLAUDE_MODEL = "claude-sonnet-4-6";
