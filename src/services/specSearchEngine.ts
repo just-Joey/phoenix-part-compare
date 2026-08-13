@@ -102,7 +102,13 @@ export async function runSpecSearchEngine(
 function extractSubmission(message: Anthropic.Message): SpecSearchResult | null {
   for (const block of message.content) {
     if (block.type === "tool_use" && block.name === "submit_spec_search") {
-      return block.input as SpecSearchResult;
+      const submission = block.input as SpecSearchResult;
+      // Same class of gap as comparisonEngine.ts's normalizeComparisonResult:
+      // "required" in the tool schema isn't actually enforced by the API.
+      return {
+        ...submission,
+        candidates: (submission.candidates ?? []).map((c) => ({ ...c, keySpecs: c.keySpecs ?? {} })),
+      };
     }
   }
   return null;

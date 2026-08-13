@@ -201,8 +201,27 @@ export async function runComparisonEngine(
 function extractSubmission(message: Anthropic.Message): ComparisonResult | null {
   for (const block of message.content) {
     if (block.type === "tool_use" && block.name === "submit_comparison") {
-      return block.input as ComparisonResult;
+      return normalizeComparisonResult(block.input as ComparisonResult);
     }
   }
   return null;
+}
+
+// The submit_comparison tool's JSON schema marks these array fields
+// "required", but Anthropic's tool-use API doesn't actually enforce that for
+// custom tools — Claude can and does omit them, which used to crash the
+// frontend (e.g. `result.otherCandidates.length` on undefined). Defaulting
+// to empty here keeps the contract with the client honest.
+function normalizeComparisonResult(result: ComparisonResult): ComparisonResult {
+  return {
+    ...result,
+    similarities: result.similarities ?? [],
+    differences: result.differences ?? [],
+    alternates: result.alternates ?? [],
+    otherCandidates: result.otherCandidates ?? [],
+    phoenix: result.phoenix ? { ...result.phoenix, keySpecs: result.phoenix.keySpecs ?? {} } : null,
+    competitor: result.competitor
+      ? { ...result.competitor, keySpecs: result.competitor.keySpecs ?? {} }
+      : null,
+  };
 }
