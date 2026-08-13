@@ -212,7 +212,7 @@ function extractSubmission(message: Anthropic.Message): ComparisonResult | null 
 // custom tools — Claude can and does omit them, which used to crash the
 // frontend (e.g. `result.otherCandidates.length` on undefined). Defaulting
 // to empty here keeps the contract with the client honest.
-function normalizeComparisonResult(result: ComparisonResult): ComparisonResult {
+export function normalizeComparisonResult(result: ComparisonResult): ComparisonResult {
   return {
     ...result,
     similarities: result.similarities ?? [],

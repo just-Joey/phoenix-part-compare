@@ -6,6 +6,8 @@ import type {
   SpecSearchFilters,
   SpecSearchResult,
 } from "../types/comparison";
+import { normalizeComparisonResult } from "../services/comparisonEngine";
+import { normalizeSpecSearchResult } from "../services/specSearchEngine";
 
 export const prisma = new PrismaClient();
 
@@ -41,7 +43,7 @@ export async function getCachedComparison(params: ComparisonCacheParams) {
   const maxAgeMs = COMPARISON_CACHE_DAYS * 24 * 60 * 60 * 1000;
   if (ageMs > maxAgeMs) return null; // stale — caller should re-run the engine
 
-  return { id: row.id, result: row.result as unknown as ComparisonResult };
+  return { id: row.id, result: normalizeComparisonResult(row.result as unknown as ComparisonResult) };
 }
 
 export async function saveComparison(params: ComparisonCacheParams, result: ComparisonResult) {
@@ -144,7 +146,7 @@ export async function getCachedSpecSearch(
   const maxAgeMs = SPEC_SEARCH_CACHE_DAYS * 24 * 60 * 60 * 1000;
   if (ageMs > maxAgeMs) return null;
 
-  return row.result as unknown as SpecSearchResult;
+  return normalizeSpecSearchResult(row.result as unknown as SpecSearchResult);
 }
 
 export async function saveSpecSearch(
