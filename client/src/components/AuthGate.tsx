@@ -16,6 +16,13 @@ export function AuthGate({ children }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
   useEffect(() => {
     authClient.getSession().then((result) => {
       setEmail(result.data?.user?.email ?? null);
@@ -52,6 +59,25 @@ export function AuthGate({ children }: Props) {
   async function handleSignOut() {
     await authClient.signOut();
     setEmail(null);
+  }
+
+  async function handleChangePassword(e: FormEvent) {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+    setChangingPassword(true);
+    try {
+      const result = await authClient.changePassword({ currentPassword, newPassword });
+      if (result.error) {
+        setPasswordError(result.error.message ?? "Something went wrong");
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setPasswordSuccess(true);
+    } finally {
+      setChangingPassword(false);
+    }
   }
 
   if (loading) return null;
@@ -131,16 +157,62 @@ export function AuthGate({ children }: Props) {
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: 12,
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 8,
           padding: "12px 32px 0",
           maxWidth: 900,
           margin: "0 auto",
         }}
       >
-        <span className="text-secondary">{email}</span>
-        <button onClick={handleSignOut}>Sign out</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span className="text-secondary">{email}</span>
+          <button
+            onClick={() => {
+              setShowChangePassword((v) => !v);
+              setPasswordError(null);
+              setPasswordSuccess(false);
+            }}
+          >
+            Change password
+          </button>
+          <button onClick={handleSignOut}>Sign out</button>
+        </div>
+
+        {showChangePassword && (
+          <form
+            onSubmit={handleChangePassword}
+            className="card"
+            style={{ display: "flex", flexDirection: "column", gap: 12, width: 280 }}
+          >
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              Current password
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              New password
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </label>
+            {passwordError && <div style={{ color: "var(--error)" }}>{passwordError}</div>}
+            {passwordSuccess && (
+              <div style={{ color: "var(--success)" }}>Password updated.</div>
+            )}
+            <button type="submit" className="primary" disabled={changingPassword}>
+              {changingPassword ? "Updating…" : "Update password"}
+            </button>
+          </form>
+        )}
       </div>
       {children}
     </div>

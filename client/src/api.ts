@@ -1,5 +1,6 @@
 import type { CompareResponse, SpecSearchFilters, SpecSearchResponse } from "./types";
 import { getAuthToken } from "./auth";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function authHeader(): Promise<Record<string, string>> {
   const token = await getAuthToken();
@@ -14,7 +15,7 @@ export async function fetchComparison(
   },
   signal?: AbortSignal
 ): Promise<CompareResponse> {
-  const res = await fetch("/api/compare", {
+  const res = await fetch(`${API_BASE}/api/compare`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
     body: JSON.stringify(params),
@@ -40,7 +41,7 @@ export async function fetchSpecSearch(
     Object.entries(filters).filter(([, v]) => v && v.trim())
   );
 
-  const res = await fetch("/api/spec-search", {
+  const res = await fetch(`${API_BASE}/api/spec-search`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
     body: JSON.stringify({
