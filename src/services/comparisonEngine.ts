@@ -212,18 +212,28 @@ function extractSubmission(message: Anthropic.Message): ComparisonResult | null 
   return null;
 }
 
-// The submit_comparison tool's JSON schema marks these array fields
+// The submit_comparison tool's JSON schema marks most of these fields
 // "required", but Anthropic's tool-use API doesn't actually enforce that for
-// custom tools — Claude can and does omit them, which used to crash the
-// frontend (e.g. `result.otherCandidates.length` on undefined). Defaulting
-// to empty here keeps the contract with the client honest.
+// custom tools — Claude can and does omit them (seen so far: otherCandidates,
+// then the entire priceDelta object), which used to crash the frontend since
+// it renders straight off this shape with no guards. Defaulting every field
+// here — not just the ones we've already been bitten by — keeps the
+// contract with the client honest regardless of which one Claude drops next.
 export function normalizeComparisonResult(result: ComparisonResult): ComparisonResult {
   return {
     ...result,
+    isCloseMatch: result.isCloseMatch ?? false,
     similarities: result.similarities ?? [],
     differences: result.differences ?? [],
+    priceDelta: {
+      absoluteUsd: result.priceDelta?.absoluteUsd ?? null,
+      percent: result.priceDelta?.percent ?? null,
+      note: result.priceDelta?.note ?? "",
+    },
     alternates: result.alternates ?? [],
     otherCandidates: result.otherCandidates ?? [],
+    confidence: result.confidence ?? "low",
+    researchNotes: result.researchNotes ?? "",
     phoenix: result.phoenix ? { ...result.phoenix, keySpecs: result.phoenix.keySpecs ?? {} } : null,
     competitor: result.competitor
       ? { ...result.competitor, keySpecs: result.competitor.keySpecs ?? {} }

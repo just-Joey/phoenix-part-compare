@@ -117,7 +117,12 @@ function extractSubmission(message: Anthropic.Message): SpecSearchResult | null 
 // "required" in the tool schema isn't actually enforced by the API.
 export function normalizeSpecSearchResult(result: SpecSearchResult): SpecSearchResult {
   return {
-    ...result,
-    candidates: (result.candidates ?? []).map((c) => ({ ...c, keySpecs: c.keySpecs ?? {} })),
+    searchNotes: result.searchNotes ?? "",
+    candidates: (result.candidates ?? []).map((c) => ({
+      ...c,
+      keySpecs: c.keySpecs ?? {},
+      matchScore: c.matchScore ?? "weak",
+      matchNotes: c.matchNotes ?? "",
+    })),
   };
 }
