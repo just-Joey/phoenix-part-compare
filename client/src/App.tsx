@@ -4,6 +4,7 @@ import { ReverseSearchForm } from "./components/ReverseSearchForm";
 import { SpecSearchForm } from "./components/SpecSearchForm";
 import { SpecSearchResults } from "./components/SpecSearchResults";
 import { ComparisonResultView } from "./components/ComparisonResult";
+import { NextBestPhoenixPartSection } from "./components/NextBestPhoenixPart";
 import { DistributorAvailabilityList } from "./components/DistributorAvailability";
 import { fetchComparison, fetchSpecSearch } from "./api";
 import type { CompareResponse, SpecSearchFilters, SpecSearchResponse } from "./types";
@@ -25,12 +26,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Tracks whichever Phoenix part number the last successful comparison
-  // actually resolved to — used for "compare instead" follow-ups. Read from
-  // the RESULT rather than the request, because a reverse search doesn't
-  // know the Phoenix part number until the engine finds it.
-  const [lastPhoenixPart, setLastPhoenixPart] = useState("");
-
   // Kept in a ref rather than state: we need the current controller inside
   // the Cancel button's click handler without waiting for a re-render.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -45,9 +40,6 @@ export default function App() {
     try {
       const result = await fetchComparison(params, controller.signal);
       setData(result);
-      if (result.comparison.phoenix?.partNumber) {
-        setLastPhoenixPart(result.comparison.phoenix.partNumber);
-      }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -172,14 +164,7 @@ export default function App() {
               (Loaded from cache — spec research doesn't change often)
             </div>
           )}
-          <ComparisonResultView
-            result={data.comparison}
-            onCompareInstead={(partNumber) =>
-              lastPhoenixPart
-                ? runSearch({ phoenixPartNumber: lastPhoenixPart, competitorPartNumber: partNumber })
-                : undefined
-            }
-          />
+          <ComparisonResultView result={data.comparison} />
           <div>
             <h2 style={{ fontSize: 16 }}>Distributor availability</h2>
             {data.availability.length > 0 ? (
@@ -191,6 +176,16 @@ export default function App() {
               </div>
             )}
           </div>
+          {data.comparison.phoenix?.partNumber && (
+            // Keyed on the resolved part number so picking an alternate below
+            // and re-running the search resets this section's own fetched
+            // state instead of showing stale results for the old part.
+            <NextBestPhoenixPartSection
+              key={data.comparison.phoenix.partNumber}
+              primaryPartNumber={data.comparison.phoenix.partNumber}
+              onSelect={(partNumber) => runSearch({ phoenixPartNumber: partNumber })}
+            />
+          )}
         </div>
       )}
     </div>

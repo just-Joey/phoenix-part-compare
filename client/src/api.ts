@@ -1,4 +1,4 @@
-import type { CompareResponse, SpecSearchFilters, SpecSearchResponse } from "./types";
+import type { CompareResponse, NextBestPhoenixPartsResponse, SpecSearchFilters, SpecSearchResponse } from "./types";
 import { getAuthToken } from "./auth";
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -19,6 +19,25 @@ export async function fetchComparison(
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
     body: JSON.stringify(params),
+    signal,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error?.toString() ?? `Request failed with ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function fetchNextBestPhoenixPart(
+  phoenixPartNumber: string,
+  signal?: AbortSignal
+): Promise<NextBestPhoenixPartsResponse> {
+  const res = await fetch(`${API_BASE}/api/next-best-part`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeader()) },
+    body: JSON.stringify({ phoenixPartNumber }),
     signal,
   });
 

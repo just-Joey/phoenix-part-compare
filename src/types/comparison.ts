@@ -43,9 +43,41 @@ export interface ComparisonResult {
     note: string;
   };
   alternates: Alternate[]; // populated when isCloseMatch is false, or on request
-  otherCandidates: Alternate[]; // other viable competitor brands/parts considered, even when a strong primary match was found
   confidence: "high" | "medium" | "low";
   researchNotes: string; // caveats, e.g. "price is an estimate from a sibling SKU"
+}
+
+// A follow-up lookup, run after a primary Phoenix Contact part is already
+// selected — never other manufacturers, since that's the whole point of this
+// existing only for Phoenix Contact parts (this business doesn't sell
+// anything else). Kept out of ComparisonResult itself: it's a separate,
+// on-demand action from the client rather than bundled into every compare.
+export interface NextBestPhoenixPart {
+  manufacturer: "Phoenix Contact";
+  partNumber: string;
+  description: string;
+  keySpecs: Record<string, string>;
+  listPrice?: {
+    amount: number;
+    currency: string;
+    asOf: string;
+    source: string;
+  };
+  reason: string; // why this is worth considering instead of (or alongside) the primary part
+}
+
+export interface NextBestPhoenixPartsRequest {
+  phoenixPartNumber: string; // the already-selected primary part
+}
+
+export interface NextBestPhoenixPartsResult {
+  candidates: NextBestPhoenixPart[]; // ranked, strongest alternate first
+  searchNotes: string;
+}
+
+export interface NextBestPhoenixPartsResponse {
+  result: NextBestPhoenixPartsResult;
+  cached: boolean;
 }
 
 export type DistributorId =

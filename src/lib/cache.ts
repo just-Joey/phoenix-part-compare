@@ -3,11 +3,13 @@ import { createHash } from "crypto";
 import type {
   ComparisonResult,
   DistributorAvailability,
+  NextBestPhoenixPartsResult,
   SpecSearchFilters,
   SpecSearchResult,
 } from "../types/comparison";
 import { normalizeComparisonResult } from "../services/comparisonEngine";
 import { normalizeSpecSearchResult } from "../services/specSearchEngine";
+import { normalizeNextBestPhoenixPartsResult } from "../services/nextBestPhoenixPartsEngine";
 
 export const prisma = new PrismaClient();
 
@@ -17,6 +19,14 @@ const AVAILABILITY_CACHE_HOURS = Number(process.env.AVAILABILITY_CACHE_HOURS ?? 
 // exploratory by nature (a rep iterating on wording), and a stale ranked
 // list is more actively misleading than a stale single spec sheet.
 const SPEC_SEARCH_CACHE_DAYS = Number(process.env.SPEC_SEARCH_CACHE_DAYS ?? 3);
+// Same cadence as the part-number comparison cache — it's the same kind of
+// slow-changing catalog research.
+const NEXT_BEST_PARTS_CACHE_DAYS = Number(process.env.NEXT_BEST_PARTS_CACHE_DAYS ?? 14);
+
+// Normalized so "abc123" and "ABC-123" don't create duplicate cache rows.
+function normalizePartNumber(s: string) {
+  return s.trim().toUpperCase().replace(/[\s-]/g, "");
+}
 
 export interface ComparisonCacheParams {
   phoenixPartNumber?: string;
@@ -25,12 +35,10 @@ export interface ComparisonCacheParams {
 }
 
 function cacheKeyFor(params: ComparisonCacheParams) {
-  // Normalized so "abc123" and "ABC-123" don't create duplicate cache rows.
-  const normalize = (s: string) => s.trim().toUpperCase().replace(/[\s-]/g, "");
   return [
-    params.phoenixPartNumber ? normalize(params.phoenixPartNumber) : "",
-    params.competitorPartNumber ? normalize(params.competitorPartNumber) : "",
-    params.competitorManufacturer ? normalize(params.competitorManufacturer) : "",
+    params.phoenixPartNumber ? normalizePartNumber(params.phoenixPartNumber) : "",
+    params.competitorPartNumber ? normalizePartNumber(params.competitorPartNumber) : "",
+    params.competitorManufacturer ? normalizePartNumber(params.competitorManufacturer) : "",
   ].join("|");
 }
 
@@ -160,6 +168,38 @@ export async function saveSpecSearch(
     create: {
       description,
       filters: (filters ?? {}) as any,
+      cacheKey,
+      result: result as any,
+    },
+    update: {
+      result: result as any,
+    },
+  });
+}
+
+export async function getCachedNextBestPhoenixParts(
+  phoenixPartNumber: string
+): Promise<NextBestPhoenixPartsResult | null> {
+  const cacheKey = normalizePartNumber(phoenixPartNumber);
+  const row = await prisma.nextBestPhoenixPart.findUnique({ where: { cacheKey } });
+  if (!row) return null;
+
+  const ageMs = Date.now() - row.updatedAt.getTime();
+  const maxAgeMs = NEXT_BEST_PARTS_CACHE_DAYS * 24 * 60 * 60 * 1000;
+  if (ageMs > maxAgeMs) return null; // stale — caller should re-run the engine
+
+  return normalizeNextBestPhoenixPartsResult(row.result as unknown as NextBestPhoenixPartsResult);
+}
+
+export async function saveNextBestPhoenixParts(
+  phoenixPartNumber: string,
+  result: NextBestPhoenixPartsResult
+) {
+  const cacheKey = normalizePartNumber(phoenixPartNumber);
+  return prisma.nextBestPhoenixPart.upsert({
+    where: { cacheKey },
+    create: {
+      phoenixPartNumber,
       cacheKey,
       result: result as any,
     },

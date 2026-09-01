@@ -92,20 +92,6 @@ const SUBMIT_COMPARISON_TOOL = {
           required: ["manufacturer", "partNumber", "reason"],
         },
       },
-      otherCandidates: {
-        type: "array",
-        description:
-          "Other viable competitor brands/parts you considered besides the primary 'competitor' — e.g. if you picked Weidmüller as the closest match, list WAGO, Eaton, Schneider, etc. here if they also make a plausible equivalent. Populate this even when isCloseMatch is true.",
-        items: {
-          type: "object",
-          properties: {
-            manufacturer: { type: "string" },
-            partNumber: { type: "string" },
-            reason: { type: "string" },
-          },
-          required: ["manufacturer", "partNumber", "reason"],
-        },
-      },
       confidence: { type: "string", enum: ["high", "medium", "low"] },
       researchNotes: { type: "string" },
     },
@@ -117,7 +103,6 @@ const SUBMIT_COMPARISON_TOOL = {
       "differences",
       "priceDelta",
       "alternates",
-      "otherCandidates",
       "confidence",
       "researchNotes",
     ],
@@ -133,8 +118,8 @@ You're given ONE of these starting points:
 Regardless of which direction you're searching from, the output always has the same shape: "phoenix" is the Phoenix Contact part, "competitor" is the other brand's part — populate both fields correctly no matter which one was the starting point.
 
 1. Research whichever part(s) you were given: full specs, contact/coil ratings, connection type, dimensions, certifications, and current street pricing from at least one distributor.
-2. If the OTHER side (Phoenix or competitor, whichever wasn't given) wasn't specified, do NOT stop at the first plausible match you find. Industrial relay/terminal/connector categories like this are made by many overlapping brands — explicitly check at least 3-4 of: Weidmüller, WAGO, Eaton, Schneider Electric, ABB, Omron, IDEC, TE Connectivity, Finder, Rockwell/Allen-Bradley (when searching for a competitor equivalent to a given Phoenix part), or verify against Phoenix Contact's own catalog (when searching for the Phoenix equivalent to a given competitor part). Pick the closest overall match for the full comparison, and list other credible candidates you found (with their part numbers) in "otherCandidates" — populate this even when you're confident in your primary pick, so the sales engineer can see what else was considered.
-3. If both parts were given, research both exactly, and still populate otherCandidates with a couple of other brands that make something comparable, for context.
+2. If the OTHER side (Phoenix or competitor, whichever wasn't given) wasn't specified, do NOT stop at the first plausible match you find. Industrial relay/terminal/connector categories like this are made by many overlapping brands — explicitly check at least 3-4 of: Weidmüller, WAGO, Eaton, Schneider Electric, ABB, Omron, IDEC, TE Connectivity, Finder, Rockwell/Allen-Bradley (when searching for a competitor equivalent to a given Phoenix part), or verify against Phoenix Contact's own catalog (when searching for the Phoenix equivalent to a given competitor part). Pick the single closest overall match for the full comparison.
+3. If both parts were given, research both exactly as specified.
 4. Compare rigorously: only mark something a "similarity" if it's actually equivalent, not just superficially similar. Flag every spec difference, even small ones, and rate its practical significance.
 5. Never fabricate a price. If you can't find a reliable price for a part, omit listPrice for that part rather than guessing — the priceDelta.note should say so explicitly.
 6. If you can't find a close match at all, set isCloseMatch to false, leave the missing side null, and populate alternates instead with your best ranked suggestions and why each is worth considering.
@@ -231,7 +216,6 @@ export function normalizeComparisonResult(result: ComparisonResult): ComparisonR
       note: result.priceDelta?.note ?? "",
     },
     alternates: result.alternates ?? [],
-    otherCandidates: result.otherCandidates ?? [],
     confidence: result.confidence ?? "low",
     researchNotes: result.researchNotes ?? "",
     phoenix: result.phoenix ? { ...result.phoenix, keySpecs: result.phoenix.keySpecs ?? {} } : null,

@@ -41,9 +41,32 @@ export interface ComparisonResult {
     note: string;
   };
   alternates: Alternate[];
-  otherCandidates: Alternate[];
   confidence: "high" | "medium" | "low";
   researchNotes: string;
+}
+
+export interface NextBestPhoenixPart {
+  manufacturer: "Phoenix Contact";
+  partNumber: string;
+  description: string;
+  keySpecs: Record<string, string>;
+  listPrice?: {
+    amount: number;
+    currency: string;
+    asOf: string;
+    source: string;
+  };
+  reason: string;
+}
+
+export interface NextBestPhoenixPartsResult {
+  candidates: NextBestPhoenixPart[];
+  searchNotes: string;
+}
+
+export interface NextBestPhoenixPartsResponse {
+  result: NextBestPhoenixPartsResult;
+  cached: boolean;
 }
 
 export type DistributorId =

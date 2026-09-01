@@ -39,12 +39,9 @@ function PartCard({ label, part }: { label: string; part: Result["phoenix"] | nu
 
 interface Props {
   result: Result;
-  // Lets the user pick a different candidate and re-run the comparison
-  // against that specific part instead of the engine's top pick.
-  onCompareInstead?: (partNumber: string) => void;
 }
 
-export function ComparisonResultView({ result, onCompareInstead }: Props) {
+export function ComparisonResultView({ result }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
@@ -94,32 +91,6 @@ export function ComparisonResultView({ result, onCompareInstead }: Props) {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {result.otherCandidates.length > 0 && (
-        <div>
-          <strong>Other brands worth a look</strong>
-          <div className="text-secondary" style={{ marginBottom: 8 }}>
-            Considered but not the primary pick above — click one to compare it directly instead.
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {result.otherCandidates.map((c, i) => (
-              <div
-                key={i}
-                className="card"
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}
-              >
-                <div>
-                  <div>{c.manufacturer} {c.partNumber}</div>
-                  <div className="text-secondary">{c.reason}</div>
-                </div>
-                {onCompareInstead && (
-                  <button onClick={() => onCompareInstead(c.partNumber)}>Compare this instead</button>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

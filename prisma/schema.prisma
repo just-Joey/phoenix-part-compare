@@ -74,3 +74,20 @@ model SpecSearch {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// Cached separately from Comparison: this is a follow-up lookup keyed only
+// on the already-selected Phoenix part number, run on demand after a primary
+// comparison — not part of the Comparison row itself.
+model NextBestPhoenixPart {
+  id                String   @id @default(cuid())
+  phoenixPartNumber String
+  // Normalized phoenixPartNumber, same normalization as Comparison.cacheKey.
+  cacheKey          String   @unique
+
+  result            Json
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([phoenixPartNumber])
+}
